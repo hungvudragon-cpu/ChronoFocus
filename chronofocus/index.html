@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChronoFocus - AI Generative Soundscape & Flow Studio</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: #08090d;
+      color: #e2e8f0;
+      overflow-x: hidden;
+    }
+    .font-display {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .glassmorphism {
+      background: rgba(15, 18, 28, 0.75);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .card-panel {
+      background: rgba(20, 24, 38, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .card-panel:hover {
+      border-color: rgba(99, 102, 241, 0.35);
+      box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.15);
+    }
+    /* Glow circles */
+    .ambient-glow {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.15;
+      transition: background 1s ease;
+    }
+    /* Wave animation */
+    @keyframes waveBar {
+      0%, 100% { height: 15%; }
+      50% { height: 95%; }
+    }
+    .wave-active {
+      animation: waveBar 1.2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="relative min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-black">
+
+  <!-- Ambient background glow spots -->
+  <div id="ambientGlow1" class="ambient-glow -top-32 -left-32 bg-indigo-600"></div>
+  <div id="ambientGlow2" class="ambient-glow top-1/2 -right-32 bg-purple-600"></div>
+  <div id="ambientGlow3" class="ambient-glow -bottom-32 left-1/3 bg-emerald-600"></div>
+
+  <!-- Header -->
+  <header class="glassmorphism sticky top-0 z-40 px-6 py-4 border-b border-slate-800/80 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+        <i data-lucide="waves" class="w-5 h-5 text-black"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-display font-bold text-lg tracking-wide text-white">ChronoFocus</span>
+          <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">AI Flow v3</span>
+        </div>
+        <p class="text-xs text-slate-400">Generative Soundscape Engine & Deep Work Companion</p>
+      </div>
+    </div>
+
+    <!-- Active soundscape indicator & Audio controls -->
+    <div class="flex items-center gap-4">
+      <div class="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/80 border border-slate-800 text-xs">
+        <span class="w-2 h-2 rounded-full bg-emerald-400" id="soundStatusDot"></span>
+        <span class="text-slate-400">Âm thanh:</span>
+        <span id="activeSoundLabel" class="font-medium text-slate-200">Mưa rừng Amazon</span>
+      </div>
+
+      <button id="btnToggleMasterAudio" class="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all flex items-center gap-2 shadow-sm">
+        <i data-lucide="volume-2" id="masterAudioIcon" class="w-4 h-4 text-emerald-400"></i>
+        <span id="masterAudioText">Bật Âm Thanh</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="relative z-10 flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    
+    <!-- Left Column: The Timer & Audio Visualizer (7 Cols) -->
+    <div class="lg:col-span-7 flex flex-col space-y-6">
+      
+      <!-- Flow Timer Card -->
+      <div class="glassmorphism rounded-3xl p-6 md:p-8 flex flex-col items-center relative overflow-hidden">
+        
+        <!-- Mode Tabs -->
+        <div class="flex items-center gap-2 p-1.5 bg-slate-900/90 rounded-2xl border border-slate-800 mb-8">
+          <button data-mode="focus" class="mode-tab-btn px-5 py-2 text-xs font-semibold rounded-xl bg-emerald-500 text-black shadow-md transition-all">
+            🎯 Deep Focus (25m)
+          </button>
+          <button data-mode="short_break" class="mode-tab-btn px-4 py-2 text-xs font-medium rounded-xl text-slate-400 hover:text-white transition-all">
+            ☕ Nghỉ ngắn (5m)
+          </button>
+          <button data-mode="long_break" class="mode-tab-btn px-4 py-2 text-xs font-medium rounded-xl text-slate-400 hover:text-white transition-all">
+            🌿 Nghỉ dài (15m)
+          </button>
+        </div>
+
+        <!-- Big Radial / Clock Display -->
+        <div class="relative w-64 h-64 md:w-72 md:h-72 flex items-center justify-center my-2">
+          <!-- Circular SVG Progress -->
+          <svg class="w-full h-full -rotate-90 transform" viewBox="0 0 240 240">
+            <circle cx="120" cy="120" r="105" stroke="currentColor" stroke-width="8" class="text-slate-800/80 fill-none"/>
+            <circle id="timerCircleProgress" cx="120" cy="120" r="105" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-dasharray="660" stroke-dashoffset="0" class="text-emerald-400 fill-none transition-all duration-1000"/>
+          </svg>
+
+          <!-- Inside Timer Text -->
+          <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+            <span id="timerDisplay" class="font-display text-5xl md:text-6xl font-extrabold tracking-tight text-white drop-shadow">25:00</span>
+            <span id="sessionStatusTag" class="text-xs font-bold uppercase tracking-widest text-emerald-400 mt-2">Flow State Active</span>
+          </div>
+        </div>
+
+        <!-- Timer Controls -->
+        <div class="flex items-center gap-4 mt-6">
+          <button id="btnResetTimer" class="p-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all hover:scale-105" title="Đặt lại đồng hồ">
+            <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+          </button>
+          
+          <button id="btnToggleTimer" class="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 text-black font-display font-bold text-base shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:scale-105 transition-all flex items-center gap-2">
+            <i data-lucide="play" id="timerPlayIcon" class="w-5 h-5 fill-current"></i>
+            <span id="timerPlayText">Bắt đầu Focus</span>
+          </button>
+
+          <button id="btnSkipTimer" class="p-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all hover:scale-105" title="Chuyển sang phiên kế tiếp">
+            <i data-lucide="skip-forward" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Live Audio Waveform Bars -->
+        <div class="w-full mt-8 pt-6 border-t border-slate-800/80 flex items-center justify-between gap-1 h-12" id="waveformContainer">
+          <!-- 32 sound frequency bars injected via JS -->
+        </div>
+
+      </div>
+
+      <!-- Quick Session Stats -->
+      <div class="grid grid-cols-3 gap-4">
+        <div class="card-panel rounded-2xl p-4 text-center">
+          <span class="text-slate-400 text-xs block mb-1">Phiên đã xong</span>
+          <span class="font-display text-2xl font-bold text-emerald-400" id="statCompleted">0</span>
+        </div>
+        <div class="card-panel rounded-2xl p-4 text-center">
+          <span class="text-slate-400 text-xs block mb-1">Tổng thời gian</span>
+          <span class="font-display text-2xl font-bold text-indigo-400" id="statMinutes">0m</span>
+        </div>
+        <div class="card-panel rounded-2xl p-4 text-center">
+          <span class="text-slate-400 text-xs block mb-1">Điểm Flow</span>
+          <span class="font-display text-2xl font-bold text-purple-400" id="statScore">98%</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Soundscapes & AI Focus Advisor (5 Cols) -->
+    <div class="lg:col-span-5 flex flex-col space-y-6">
+      
+      <!-- Soundscape Selector -->
+      <div class="glassmorphism rounded-3xl p-6">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800/80">
+          <div>
+            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+              <i data-lucide="music-2" class="w-4 h-4 text-emerald-400"></i>
+              Môi Trường Âm Thanh (Web Audio API)
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">Sinh sóng âm thời gian thực theo tần số não (Binaural & Noise)</p>
+          </div>
+        </div>
+
+        <!-- Sound cards list -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="soundscapeList">
+          <!-- Sound options populated via JS -->
+        </div>
+
+        <!-- Volume slider -->
+        <div class="mt-5 pt-4 border-t border-slate-800/80 flex items-center gap-3">
+          <i data-lucide="volume-1" class="w-4 h-4 text-slate-400"></i>
+          <input type="range" id="volumeSlider" min="0" max="100" value="65" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400">
+          <span id="volumeValue" class="text-xs font-mono text-slate-400 w-8 text-right">65%</span>
+        </div>
+      </div>
+
+      <!-- AI Productivity & Focus Coach -->
+      <div class="glassmorphism rounded-3xl p-6 flex flex-col">
+        <div class="flex items-center justify-between mb-3 pb-3 border-b border-slate-800/80">
+          <div class="flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-4 h-4 text-purple-400"></i>
+            <h2 class="text-sm font-bold text-white">AI Flow Coach</h2>
+          </div>
+          <button id="btnNewAdvice" class="text-xs text-purple-400 hover:text-purple-300 font-medium flex items-center gap-1 transition-colors">
+            <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+            <span>Đổi mẹo</span>
+          </button>
+        </div>
+
+        <!-- Coach Tip Box -->
+        <div class="p-4 rounded-2xl bg-gradient-to-br from-purple-950/30 to-indigo-950/20 border border-purple-500/20 text-xs leading-relaxed" id="coachAdviceBox">
+          <div class="flex items-start gap-3">
+            <span class="text-xl">💡</span>
+            <div>
+              <span class="font-bold text-purple-300 block mb-1" id="coachTitle">Quy tắc 2 phút khởi động</span>
+              <p class="text-slate-300" id="coachText">
+                Nếu bạn cảm thấy khó tập trung khi bắt đầu, hãy tự nhủ chỉ làm nhiệm vụ này trong đúng 2 phút. Sau 2 phút, trạng thái tâm lý quán tính (Psychological Inertia) sẽ tự động kích hoạt chế độ Flow State.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Todo / Task Anchor for this session -->
+        <div class="mt-5">
+          <label class="block text-xs font-bold text-slate-300 mb-2">Mục tiêu phiên tập trung hiện tại</label>
+          <div class="flex gap-2">
+            <input type="text" id="sessionGoalInput" placeholder="Ví dụ: Hoàn thành refactor auth module..." class="flex-1 bg-slate-900/90 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors">
+            <button id="btnPinGoal" class="px-3.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-semibold rounded-xl transition-all">
+              Ghim
+            </button>
+          </div>
+          <div id="pinnedGoalWrap" class="hidden mt-2 p-2.5 rounded-xl bg-slate-900/60 border border-emerald-500/30 flex items-center justify-between text-xs">
+            <span class="text-emerald-300 font-medium flex items-center gap-1.5 truncate">
+              <i data-lucide="target" class="w-3.5 h-3.5 shrink-0 text-emerald-400"></i>
+              <span id="pinnedGoalText" class="truncate"></span>
+            </span>
+            <button id="btnRemoveGoal" class="text-slate-500 hover:text-slate-300 ml-2">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="glassmorphism mt-8 px-6 py-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between text-xs text-slate-500">
+    <div class="flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+      <span><strong>ChronoFocus</strong> &bull; Âm thanh thuần khiết từ Web Audio Synthesis, không cần tải file ngoài.</span>
+    </div>
+    <div>
+      <span>Tối ưu hóa nhịp sinh học & năng suất sáng tạo</span>
+    </div>
+  </footer>
+
+  <script src="audio-engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
